@@ -1,3 +1,7 @@
+function log() {
+  console.log(...arguments);
+}
+
 const express = require('express'),
   app = express(),
   // enable CORS (https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)
@@ -12,6 +16,7 @@ app.use(express.static('public'));
 // http://expressjs.com/en/starter/basic-routing.html
 app.get('/', (req, res) => res.sendFile(__dirname + '/views/index.html'));
 
+// 1. Timestamp.
 app.get('/api', (req, res) => {
   const date = new Date();
   res.json({
@@ -19,8 +24,6 @@ app.get('/api', (req, res) => {
     utc: date.toUTCString(),
   });
 });
-
-// your first API endpoint...
 app.get('/api/:date', (req, res) => {
   const routeParam = req.params.date,
     date = new Date(isNaN(+routeParam) ? routeParam : +routeParam);
@@ -31,7 +34,16 @@ app.get('/api/:date', (req, res) => {
   );
 });
 
-// listen for requests :)
+// 2. Request Header Parser.
+app.get('/api/whoami', (req, res) => {
+  // Still need to find ipaddress key.
+  res.json({
+    ipaddress: req.headers['x-forwarded-for'] || req.socket.remoteAddress,
+    language: req.headers['accept-language'],
+    software: req.headers['user-agent'],
+  });
+});
+
 const listener = app.listen(process.env.PORT, () =>
-  console.log('Your app is listening on port ' + listener.address().port)
+  log('Your app is listening on port ' + listener.address().port)
 );
