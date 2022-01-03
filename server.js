@@ -1,3 +1,4 @@
+// https://obscure-wave-43713.herokuapp.com/
 function log() {
   console.log(...arguments);
 }
