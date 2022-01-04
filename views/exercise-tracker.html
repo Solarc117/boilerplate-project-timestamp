@@ -21,32 +21,32 @@
       <form action="/api/users" method="post">
         <h3>Create a New User</h3>
         <p><code>POST /api/users</code></p>
-        <input id="uname" type="text" name="username" placeholder="username" />
-        <input type="submit" value="Submit" />
+        <input class="exercise-tracker" id="uname" type="text" name="username" placeholder="username" />
+        <input class="exercise-tracker" type="submit" value="Submit" />
       </form>
       <form id="exercise-form" method="post">
         <h3>Add exercises</h3>
         <p><code>POST /api/users/:_id/exercises</code></p>
-        <input id="uid" type="text" name=":_id" placeholder=":_id" />
-        <input
+        <input class="exercise-tracker" id="uid" type="text" name=":_id" placeholder=":_id" />
+        <input class="exercise-tracker"
           id="desc"
           type="text"
           name="description"
           placeholder="description*"
         />
-        <input
+        <input class="exercise-tracker"
           id="dur"
           type="text"
           name="duration"
           placeholder="duration* (mins.)"
         />
-        <input
+        <input class="exercise-tracker"
           id="date"
           type="text"
           name="date"
           placeholder="date (yyyy-mm-dd)"
         />
-        <input type="submit" value="Submit" />
+        <input class="exercise-tracker" type="submit" value="Submit" />
       </form>
       <p>
         <strong>GET user's exercise log: </strong>

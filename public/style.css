@@ -45,3 +45,57 @@ a {
   text-decoration: none;
   color: #2574a9;
 }
+
+input.file-input {
+  display: block;
+  position: relative;
+  margin: 10px auto;
+}
+
+input#button.file-input {
+  width: 230px;
+}
+
+form {
+  margin-bottom: 25px;
+  padding: 15px;
+  background-color: #87d37c;
+  display: inline-block;
+  width: 100%;
+  max-width: 340px;
+  border-radius: 5px;
+}
+
+input.exercise-tracker {
+  display: block;
+  margin-bottom: 10px;
+  padding: 5px;
+  width: 80%;
+  margin: 10px auto;
+  border: 1px solid lightgrey;
+  border-radius: 3px;
+  font-size: 16px;
+}
+
+input.exercise-tracker[type='submit'] {
+  font-size: 16px;
+  border-radius: 3px;
+  background-color: #e4f1fe;
+  border: 1px solid grey;
+  box-shadow: 2px 2px #999;
+  cursor: pointer;
+}
+
+input.exercise-tracker[type='submit']:hover {
+  background-color: #fffec4;
+}
+
+.view {
+  position: relative;
+  margin: auto;
+  margin-top: 40px;
+  border: 1px solid #aaa;
+  padding: 20px;
+  width: 60%;
+  min-width: 400px;
+}
