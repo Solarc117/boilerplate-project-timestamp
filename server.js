@@ -47,7 +47,7 @@ app.get('/api', (req, res) => {
 app.get('/api/whoami', (req, res) => {
   // Still need to find ipaddress key.
   res.json({
-    ipaddress: req.headers['x-forwarded-for'] || req.socket.remoteAddress,
+    ipaddress: req.socket.remoteAddress,
     language: req.headers['accept-language'],
     software: req.headers['user-agent'],
   });
