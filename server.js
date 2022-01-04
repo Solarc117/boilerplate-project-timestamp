@@ -17,6 +17,21 @@ app.use(express.static('public'));
 
 // http://expressjs.com/en/starter/basic-routing.html
 app.get('/', (req, res) => res.sendFile(__dirname + '/views/index.html'));
+app.get('/timestamp', (req, res) =>
+  res.sendFile(__dirname + '/views/timestamp.html')
+);
+app.get('/header-parser', (req, res) =>
+  res.sendFile(__dirname + '/views/header-parser.html')
+);
+app.get('/url-shortener', (req, res) =>
+  res.sendFile(__dirname + '/views/url-shortener.html')
+);
+app.get('/exercise-tracker', (req, res) =>
+  res.sendFile(__dirname + '/views/exercise-tracker.html')
+);
+app.get('/file-metadata', (req, res) =>
+  res.sendFile(__dirname + '/views/file-metadata.html')
+);
 
 // 1. Timestamp.
 app.get('/api', (req, res) => {
