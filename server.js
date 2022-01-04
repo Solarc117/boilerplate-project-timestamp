@@ -15,6 +15,7 @@ app.use(cors({ optionsSuccessStatus: 200 })); // some legacy browsers choke on 2
 // http://expressjs.com/en/starter/static-files.html
 app.use(express.static('public'));
 
+// File responses.
 // http://expressjs.com/en/starter/basic-routing.html
 app.get('/', (req, res) => res.sendFile(__dirname + '/views/index.html'));
 app.get('/timestamp', (req, res) =>
@@ -41,15 +42,6 @@ app.get('/api', (req, res) => {
     utc: date.toUTCString(),
   });
 });
-app.get('/api/:date', (req, res) => {
-  const routeParam = req.params.date,
-    date = new Date(isNaN(+routeParam) ? routeParam : +routeParam);
-  res.json(
-    date.toUTCString() === 'Invalid Date'
-      ? { error: 'Invalid Date' }
-      : { unix: date.valueOf(), utc: date.toUTCString() }
-  );
-});
 
 // 2. Request Header Parser.
 app.get('/api/whoami', (req, res) => {
@@ -59,6 +51,17 @@ app.get('/api/whoami', (req, res) => {
     language: req.headers['accept-language'],
     software: req.headers['user-agent'],
   });
+});
+
+// 1. Timestamp.
+app.get('/api/:date', (req, res) => {
+  const routeParam = req.params.date,
+    date = new Date(isNaN(+routeParam) ? routeParam : +routeParam);
+  res.json(
+    date.toUTCString() === 'Invalid Date'
+      ? { error: 'Invalid Date' }
+      : { unix: date.valueOf(), utc: date.toUTCString() }
+  );
 });
 
 const listener = app.listen(port, () =>
