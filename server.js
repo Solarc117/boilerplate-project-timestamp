@@ -2,18 +2,43 @@
 function log() {
   console.log(...arguments);
 }
+// Load environment variables into process.env.
+require('dotenv').config();
 
 const express = require('express'),
   app = express(),
   // enable CORS (https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)
   // so that your API is remotely testable by FCC
   cors = require('cors'),
+  mongodb = require('mongodb'),
+  mongoose = require('mongoose'),
+  bodyParser = require('body-parser'),
+  urlencodedParser = bodyParser.urlencoded({ extended: false }),
   port = process.env.PORT || 3000;
+
+// 📄 mongoose.connect(uri, { useNewUrlParser: true }) is the MINIMUM required to connect, but to work with future versions of mongoose (where Server Discovery and Monitoring engine are deprecated), we also pass the useUnifiedTopology key with a true value.
+mongoose
+  .connect(process.env.MONGO_URI, {
+    // ⚠️ ADD YOUR URI TO A ROOT .ENV FILE
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => log('🍃 first-cluster db connected!'))
+  .catch(err => log('❌ first-cluster db connection error: ' + err));
+
+// 📄 Express evaluates functions in the order they appear in the code. This is true for middleware too. If you want it to work for all the routes, it should be mounted before them.
 
 app.use(cors({ optionsSuccessStatus: 200 })); // some legacy browsers choke on 204
 
 // http://expressjs.com/en/starter/static-files.html
 app.use(express.static('public'));
+
+// A root-level action logging middleware. Calling next() prevents server from pausing on requests.
+app.use((req, res, next) => {
+  const { method, path, ip } = req;
+  log(`${method} ${path} - ${ip}`);
+  next();
+});
 
 // File responses.
 // http://expressjs.com/en/starter/basic-routing.html
@@ -64,6 +89,24 @@ app.get('/api/:date', (req, res) => {
   );
 });
 
+// 3. URL Shortener.
+app.get('/api/shorturl/:url', (req, res) => {
+  const url = req.params.url;
+  res.json({
+    url: url,
+  });
+});
+
+// 3. URL Shortener.
+// It is recommended to add parsers specifically to the routes that need them, rather than on root level with app.use().
+app.post('/api/shorturl', urlencodedParser, (req, res) => {
+  const { url: original_url } = req.body;
+  res.json({
+    original_url: original_url,
+    short_url: 'TBD',
+  });
+});
+
 const listener = app.listen(port, () =>
-  log('Your app is listening on port ' + listener.address().port)
+  log('Your app is listening on port ' + port)
 );
