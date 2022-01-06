@@ -102,76 +102,13 @@ app.get('/api/:date', (req, res) => {
 
 // 3. URL Shortener - redirect to corresponding url.
 app.get('/api/shorturl/:url', (req, res) => {
-  // Should redirect to the shorturl's corresponding url.
-  const { url: shortUrl } = req.params;
-  UrlPair.find({ short_url: shortUrl }, (err, urlDoc) => {
-    if (err) {
-      log('❌ Error querying urlPair: ' + err);
-      return res.json({ error: 'Could not find that url 😣' });
-    }
-    if (urlDoc) {
-      const { original_url } = urlDoc[0];
-      return res.redirect(
-        original_url.includes('https://')
-          ? original_url
-          : `https://${original_url}`
-      );
-    }
-    return res.json({ error: 'Something went wrong 😭' });
-  });
+  res.send(req.params.url + ' redirecting... :)');
 });
 
 // 3. URL Shortener - submit new short_url request.
 // It is recommended to add parsers specifically to the routes that need them, rather than on root level with app.use().
 app.post('/api/shorturl', urlencodedParser, (req, res) => {
-  let submittedUrl;
-  try {
-    submittedUrl = new URL(req.body.url).href;
-  } catch (err) {
-    log('❌ URL error: ' + err);
-    return res.json({
-      error: 'invalid url',
-      urlFormatExamples: 'https://www.example.com, https://example.org',
-    });
-  }
-  console.log('submittedUrl:', submittedUrl);
-  UrlPair.find({ original_url: submittedUrl }, (err, urlPair) => {
-    if (err) {
-      log('❌ Error querying UrlPairs: ' + err);
-      return res.json({ error: 'Error checking for url in db ＞﹏＜' });
-    }
-    // If we find that url in db, just return from db.
-    if (urlPair) log(urlPair);
-    return res.json({
-      message: 'Already have that url! 🤗',
-      original_url: urlPair[0].original_url,
-      short_url: urlPair[0].short_url,
-    });
-    // Otherwise, begin creating new doc.
-    UrlPair.estimatedDocumentCount((err, count) => {
-      if (err) {
-        log('❌ Error estimating UrlPair count: ' + err);
-        return res.json({ error: 'Error adding that url 😩' });
-      }
-      const short_url = count + 1,
-        pairDoc = new UrlPair({
-          original_url: submittedUrl,
-          short_url: short_url,
-        });
-      pairDoc.save((err, urlPair) => {
-        if (err) {
-          log('❌ Error saving new url document: ' + err);
-          return res.json({ error: 'Something went wrong 😠' });
-        }
-        const { original_url, short_url } = urlPair;
-        return res.json({
-          message: '✅ New url document saved!',
-          original_url: original_url,
-          short_url: short_url,
-        });
-      });
-    });
-  });
+  res.send(req.body.url + ' storing :)');
 });
 
 app.listen(port, () => log('Your app is listening on port ' + port));
