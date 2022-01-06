@@ -10,8 +10,22 @@ const express = require('express'),
   // enable CORS (https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)
   // so that your API is remotely testable by FCC
   cors = require('cors'),
+  dns = require('dns'),
   mongodb = require('mongodb'),
   mongoose = require('mongoose'),
+  { Schema } = mongoose,
+  UrlPairSchema = new Schema({
+    original_url: {
+      type: String,
+      required: true,
+    },
+    short_url: {
+      type: String,
+      required: true,
+    },
+    ip: String,
+  }),
+  UrlPair = mongoose.model('UrlPair', UrlPairSchema),
   bodyParser = require('body-parser'),
   urlencodedParser = bodyParser.urlencoded({ extended: false }),
   port = process.env.PORT || 3000;
@@ -70,7 +84,6 @@ app.get('/api', (req, res) => {
 
 // 2. Request Header Parser.
 app.get('/api/whoami', (req, res) => {
-  // Still need to find ipaddress key.
   res.json({
     ipaddress: req.socket.remoteAddress,
     language: req.headers['accept-language'],
@@ -89,24 +102,50 @@ app.get('/api/:date', (req, res) => {
   );
 });
 
-// 3. URL Shortener.
+// 3. URL Shortener - redirect to corresponding url.
 app.get('/api/shorturl/:url', (req, res) => {
-  const url = req.params.url;
-  res.json({
-    url: url,
+  // Should redirect to the shorturl's corresponding url.
+  const { url: shortUrl } = req.params;
+  UrlPair.findOne({ short_url: shortUrl }, (err, urlDoc) => {
+    if (err) return log('❌ Error querying urlPair: ' + err);
+    if (urlDoc) {
+      const { original_url: url } = urlDoc;
+      return res.redirect(url.includes('https://') ? url : `https://${url}`);
+    }
+    res.json({ error: 'could not find that url 😣' });
   });
 });
 
-// 3. URL Shortener.
+// 3. URL Shortener - submit new short_url request.
 // It is recommended to add parsers specifically to the routes that need them, rather than on root level with app.use().
 app.post('/api/shorturl', urlencodedParser, (req, res) => {
-  const { url: original_url } = req.body;
-  res.json({
-    original_url: original_url,
-    short_url: 'TBD',
+  const { url: submittedUrl } = req.body;
+  dns.lookup(submittedUrl, (err, ip) => {
+    if (err) {
+      log(`❌ Error looking up ${submittedUrl} with dns: `, err);
+      return res.json({ error: 'Invalid url' });
+    }
+    UrlPair.findOne({ original_url: submittedUrl }, (err, urlPair) => {
+      if (err) return log('❌ Error querying UrlPairs: ' + err);
+      if (urlPair) return res.json(urlPair);
+      UrlPair.estimatedDocumentCount((err, count) => {
+        if (err) return log('❌ Error estimating UrlPair count: ' + err);
+        const short_url = count + 1,
+          pairDoc = new UrlPair({
+            original_url: submittedUrl,
+            ip: ip,
+            short_url: short_url,
+          });
+        pairDoc
+          .save()
+          .then(urlDoc => {
+            log('✅ New url document saved!');
+            res.json(urlDoc);
+          })
+          .catch(err => log('❌ Error saving new url document: ' + err));
+      });
+    });
   });
 });
 
-const listener = app.listen(port, () =>
-  log('Your app is listening on port ' + port)
-);
+app.listen(port, () => log('Your app is listening on port ' + port));
