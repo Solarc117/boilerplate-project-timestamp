@@ -11,8 +11,6 @@ const express = require('express'),
   // enable CORS (https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)
   // so that your API is remotely testable by FCC
   cors = require('cors'),
-  dns = require('dns'),
-  mongodb = require('mongodb'),
   mongoose = require('mongoose'),
   { Schema } = mongoose,
   UrlPairSchema = new Schema({
@@ -107,7 +105,10 @@ app.get('/api/shorturl/:url', (req, res) => {
   // Should redirect to the shorturl's corresponding url.
   const { url: shortUrl } = req.params;
   UrlPair.findOne({ short_url: shortUrl }, (err, urlDoc) => {
-    if (err) return log('❌ Error querying urlPair: ' + err);
+    if (err) {
+      log('❌ Error querying urlPair: ' + err);
+      res.json({ error: 'Something went wrong 😭' });
+    }
     if (urlDoc) {
       const { original_url: url } = urlDoc;
       return res.redirect(url.includes('https://') ? url : `https://${url}`);
@@ -119,34 +120,36 @@ app.get('/api/shorturl/:url', (req, res) => {
 // 3. URL Shortener - submit new short_url request.
 // It is recommended to add parsers specifically to the routes that need them, rather than on root level with app.use().
 app.post('/api/shorturl', urlencodedParser, (req, res) => {
-  const { url: submittedUrl } = req.body;
-  dns.lookup(submittedUrl, err => {
+  let submittedUrl;
+  try {
+    submittedUrl = new URL(req.body.url);
+  } catch (err) {
+    log('❌ URL error: ' + err);
+    return res.json({ error: 'Invalid url 😩' });
+  }
+  UrlPair.findOne({ original_url: submittedUrl.href }, (err, urlPair) => {
     if (err) {
-      log(`❌ Error looking up ${submittedUrl} with dns: `, err);
-      return res.json({ error: 'Invalid url' });
+      log('❌ Error querying UrlPairs: ' + err);
+      return res.json({ error: 'Something went wrong 😠' });
     }
-    UrlPair.findOne({ original_url: submittedUrl }, (err, urlPair) => {
-      if (err) return log('❌ Error querying UrlPairs: ' + err);
-      if (urlPair)
-        return res.json({
-          original_url: urlPair.original_url,
-          short_url: urlPair.short_url,
+    if (urlPair) {
+      const { original_url, short_url } = urlPair;
+      return res.json({ original_url, short_url });
+    }
+    UrlPair.estimatedDocumentCount((err, count) => {
+      if (err) return log('❌ Error estimating UrlPair count: ' + err);
+      const short_url = count + 1,
+        pairDoc = new UrlPair({
+          original_url: submittedUrl.href,
+          short_url: short_url,
         });
-      UrlPair.estimatedDocumentCount((err, count) => {
-        if (err) return log('❌ Error estimating UrlPair count: ' + err);
-        const short_url = count + 1,
-          pairDoc = new UrlPair({
-            original_url: submittedUrl,
-            short_url: short_url,
-          });
-        pairDoc
-          .save()
-          .then(urlDoc => {
-            log('✅ New url document saved!');
-            res.json(urlDoc);
-          })
-          .catch(err => log('❌ Error saving new url document: ' + err));
-      });
+      pairDoc
+        .save()
+        .then(urlDoc => {
+          log('✅ New url document saved!');
+          res.json(urlDoc);
+        })
+        .catch(err => log('❌ Error saving new url document: ' + err));
     });
   });
 });
