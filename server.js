@@ -1,4 +1,5 @@
 // https://obscure-wave-43713.herokuapp.com/
+('use strict');
 function log() {
   console.log(...arguments);
 }
@@ -23,7 +24,6 @@ const express = require('express'),
       type: String,
       required: true,
     },
-    ip: String,
   }),
   UrlPair = mongoose.model('UrlPair', UrlPairSchema),
   bodyParser = require('body-parser'),
@@ -120,20 +120,23 @@ app.get('/api/shorturl/:url', (req, res) => {
 // It is recommended to add parsers specifically to the routes that need them, rather than on root level with app.use().
 app.post('/api/shorturl', urlencodedParser, (req, res) => {
   const { url: submittedUrl } = req.body;
-  dns.lookup(submittedUrl, (err, ip) => {
+  dns.lookup(submittedUrl, err => {
     if (err) {
       log(`❌ Error looking up ${submittedUrl} with dns: `, err);
       return res.json({ error: 'Invalid url' });
     }
     UrlPair.findOne({ original_url: submittedUrl }, (err, urlPair) => {
       if (err) return log('❌ Error querying UrlPairs: ' + err);
-      if (urlPair) return res.json(urlPair);
+      if (urlPair)
+        return res.json({
+          original_url: urlPair.original_url,
+          short_url: urlPair.short_url,
+        });
       UrlPair.estimatedDocumentCount((err, count) => {
         if (err) return log('❌ Error estimating UrlPair count: ' + err);
         const short_url = count + 1,
           pairDoc = new UrlPair({
             original_url: submittedUrl,
-            ip: ip,
             short_url: short_url,
           });
         pairDoc
