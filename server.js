@@ -47,8 +47,8 @@ app.use(express.static('public'));
 
 // A root-level action logging middleware. Calling next() prevents server from pausing on requests.
 app.use((req, res, next) => {
-  const { method, path, ip } = req;
-  log(`${method} ${path} - ${ip}`);
+  const { method, path, ip, params } = req;
+  log(`${method} ${params} ${path} - ${ip}`);
   next();
 });
 
@@ -110,8 +110,10 @@ app.get('/api/shorturl/:url', (req, res) => {
       return res.json({ error: 'Could not find that url 😣' });
     }
     if (urlDoc) {
-      const { original_url: url } = urlDoc;
-      return res.redirect(url.includes('https://') ? url : `https://${url}`);
+      const { original_url } = urlDoc;
+      return res.redirect(
+        url.includes('https://') ? original_url : `https://${url}`
+      );
     }
     return res.json({ error: 'Something went wrong 😭' });
   });
@@ -130,10 +132,11 @@ app.post('/api/shorturl', urlencodedParser, (req, res) => {
       urlFormatExamples: 'https://www.example.com, https://example.org',
     });
   }
+  console.log('submittedUrl:', submittedUrl);
   UrlPair.findOne({ original_url: submittedUrl }, (err, urlPair) => {
     if (err) {
       log('❌ Error querying UrlPairs: ' + err);
-      return res.json({ error: 'Could not find that url in db ＞﹏＜' });
+      return res.json({ error: 'Error checking for url in db ＞﹏＜' });
     }
     // If we find that url in db, just return from db.
     if (urlPair)
