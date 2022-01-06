@@ -48,7 +48,7 @@ app.use(express.static('public'));
 // A root-level action logging middleware. Calling next() prevents server from pausing on requests.
 app.use((req, res, next) => {
   const { method, path, ip, params } = req;
-  log(`${method} ${params} ${path} - ${ip}`);
+  log(`${method} ${path} - ${ip}`);
   next();
 });
 
@@ -104,15 +104,17 @@ app.get('/api/:date', (req, res) => {
 app.get('/api/shorturl/:url', (req, res) => {
   // Should redirect to the shorturl's corresponding url.
   const { url: shortUrl } = req.params;
-  UrlPair.findOne({ short_url: shortUrl }, (err, urlDoc) => {
+  UrlPair.find({ short_url: shortUrl }, (err, urlDoc) => {
     if (err) {
       log('❌ Error querying urlPair: ' + err);
       return res.json({ error: 'Could not find that url 😣' });
     }
     if (urlDoc) {
-      const { original_url } = urlDoc;
+      const { original_url } = urlDoc[0];
       return res.redirect(
-        url.includes('https://') ? original_url : `https://${url}`
+        original_url.includes('https://')
+          ? original_url
+          : `https://${original_url}`
       );
     }
     return res.json({ error: 'Something went wrong 😭' });
@@ -133,18 +135,18 @@ app.post('/api/shorturl', urlencodedParser, (req, res) => {
     });
   }
   console.log('submittedUrl:', submittedUrl);
-  UrlPair.findOne({ original_url: submittedUrl }, (err, urlPair) => {
+  UrlPair.find({ original_url: submittedUrl }, (err, urlPair) => {
     if (err) {
       log('❌ Error querying UrlPairs: ' + err);
       return res.json({ error: 'Error checking for url in db ＞﹏＜' });
     }
     // If we find that url in db, just return from db.
-    if (urlPair)
-      return res.json({
-        message: 'Already have that url! 🤗',
-        original_url: urlPair.original_url,
-        short_url: urlPair.short_url,
-      });
+    if (urlPair) log(urlPair);
+    return res.json({
+      message: 'Already have that url! 🤗',
+      original_url: urlPair[0].original_url,
+      short_url: urlPair[0].short_url,
+    });
     // Otherwise, begin creating new doc.
     UrlPair.estimatedDocumentCount((err, count) => {
       if (err) {
