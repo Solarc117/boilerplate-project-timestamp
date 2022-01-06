@@ -107,13 +107,13 @@ app.get('/api/shorturl/:url', (req, res) => {
   UrlPair.findOne({ short_url: shortUrl }, (err, urlDoc) => {
     if (err) {
       log('❌ Error querying urlPair: ' + err);
-      res.json({ error: 'Something went wrong 😭' });
+      return res.json({ error: 'Could not find that url 😣' });
     }
     if (urlDoc) {
       const { original_url: url } = urlDoc;
       return res.redirect(url.includes('https://') ? url : `https://${url}`);
     }
-    res.json({ error: 'could not find that url 😣' });
+    return res.json({ error: 'Something went wrong 😭' });
   });
 });
 
@@ -122,34 +122,49 @@ app.get('/api/shorturl/:url', (req, res) => {
 app.post('/api/shorturl', urlencodedParser, (req, res) => {
   let submittedUrl;
   try {
-    submittedUrl = new URL(req.body.url);
+    submittedUrl = new URL(req.body.url).href;
   } catch (err) {
     log('❌ URL error: ' + err);
-    return res.json({ error: 'Invalid url 😩' });
+    return res.json({
+      error: 'Invalid url 😩',
+      urlFormatExamples: 'https://www.example.com, https://example.org',
+    });
   }
-  UrlPair.findOne({ original_url: submittedUrl.href }, (err, urlPair) => {
+  UrlPair.findOne({ original_url: submittedUrl }, (err, urlPair) => {
     if (err) {
       log('❌ Error querying UrlPairs: ' + err);
-      return res.json({ error: 'Something went wrong 😠' });
+      return res.json({ error: 'Could not find that url in db ＞﹏＜' });
     }
-    if (urlPair) {
-      const { original_url, short_url } = urlPair;
-      return res.json({ original_url, short_url });
-    }
+    // If we find that url in db, just return from db.
+    if (urlPair)
+      return res.json({
+        message: 'Already have that url! 🤗',
+        original_url: urlPair.original_url,
+        short_url: urlPair.short_url,
+      });
+    // Otherwise, begin creating new doc.
     UrlPair.estimatedDocumentCount((err, count) => {
-      if (err) return log('❌ Error estimating UrlPair count: ' + err);
+      if (err) {
+        log('❌ Error estimating UrlPair count: ' + err);
+        return res.json({ error: 'Error adding that url 😩' });
+      }
       const short_url = count + 1,
         pairDoc = new UrlPair({
-          original_url: submittedUrl.href,
+          original_url: submittedUrl,
           short_url: short_url,
         });
-      pairDoc
-        .save()
-        .then(urlDoc => {
-          log('✅ New url document saved!');
-          res.json(urlDoc);
-        })
-        .catch(err => log('❌ Error saving new url document: ' + err));
+      pairDoc.save((err, urlPair) => {
+        if (err) {
+          log('❌ Error saving new url document: ' + err);
+          return res.json({ error: 'Something went wrong 😠' });
+        }
+        const { original_url, short_url } = urlPair;
+        return res.json({
+          message: '✅ New url document saved!',
+          original_url: original_url,
+          short_url: short_url,
+        });
+      });
     });
   });
 });
