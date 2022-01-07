@@ -93,6 +93,7 @@ app.get('/api/whoami', (req, res) => {
 // It is recommended to add parsers specifically to the routes that need them, rather than on root level with app.use().
 app.post('/api/shorturl', urlencodedParser, (req, res) => {
   // Checking if url is valid w/new URL().
+  log('POST request processing...');
   let submittedUrl;
   try {
     submittedUrl = new URL(req.body.url).href;
