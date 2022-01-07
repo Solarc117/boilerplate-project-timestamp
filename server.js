@@ -47,8 +47,8 @@ app.use(express.static('public'));
 
 // A root-level action logging middleware. Calling next() prevents server from pausing on requests.
 app.use((req, res, next) => {
-  const { method, path, ip, params } = req;
-  log(`${method} ${path} - ${ip}`);
+  const { method, path, ip } = req;
+  log(`📄 ${method} ${path} - ${ip}`);
   next();
 });
 
@@ -89,6 +89,78 @@ app.get('/api/whoami', (req, res) => {
   });
 });
 
+// 3. URL Shortener - submit new short_url request.
+// It is recommended to add parsers specifically to the routes that need them, rather than on root level with app.use().
+app.post('/api/shorturl', urlencodedParser, (req, res) => {
+  // Checking if url is valid w/new URL().
+  let submittedUrl;
+  try {
+    submittedUrl = new URL(req.body.url).href;
+  } catch (err) {
+    log('❌ New url error: ' + err);
+    return res.json({
+      error: 'invalid url',
+      urlFormat: 'https://www.example.com OR https://example.org',
+    });
+  }
+  log('Submitted url verified 😎: ' + submittedUrl);
+  // Checking if that url already exists in db.
+  UrlPair.findOne({ original_url: submittedUrl }, (err, urlDoc) => {
+    if (err) {
+      log('❌ Error searching db for url: ' + err);
+      return res.send('Could not query db for that url 😭');
+    }
+    if (urlDoc) {
+      const { original_url, short_url } = urlDoc;
+      return res.json({
+        message: 'Already have that url! 🤗',
+        original_url: original_url,
+        short_url: short_url,
+      });
+    }
+    // If it doesn't exist, create a new doc and save it.
+    log('🧐 Could not find urlDoc in db - creating new doc...');
+    UrlPair.estimatedDocumentCount((err, count) => {
+      if (err) {
+        log('❌ Error counting UrlPair docs: ' + err);
+        return res.json({ error: 'Could not add url to db 😩' });
+      }
+      const newUrl = new UrlPair({
+        original_url: submittedUrl,
+        short_url: count + 1,
+      });
+      newUrl.save((err, urlpair) => {
+        if (err) {
+          log('❌ Error saving new UrlPair to docs: ' + err);
+          return res.send('Could not add url to db 😩 ');
+        }
+        res.json({
+          message: '✅ Documented new url!',
+          original_url: urlpair.original_url,
+          short_url: urlpair.short_url,
+        });
+      });
+    });
+  });
+});
+
+// 3. URL Shortener - redirect to corresponding url.
+app.get('/api/shorturl/:url', (req, res) => {
+  const { url } = req.params;
+  UrlPair.findOne({ short_url: url }, (err, urlDoc) => {
+    if (err) {
+      log('❌ Error finding url: ' + err);
+      return res.send('Could not get that url 😣');
+    }
+    if (urlDoc) {
+      const { original_url } = urlDoc;
+      log('🚗 Redirecting to ' + original_url);
+      return res.redirect(original_url);
+    }
+    res.send('Something went wrong 🤨');
+  });
+});
+
 // 1. Timestamp.
 app.get('/api/:date', (req, res) => {
   const routeParam = req.params.date,
@@ -100,15 +172,4 @@ app.get('/api/:date', (req, res) => {
   );
 });
 
-// 3. URL Shortener - redirect to corresponding url.
-app.get('/api/shorturl/:url', (req, res) => {
-  res.send(req.params.url + ' redirecting... :)');
-});
-
-// 3. URL Shortener - submit new short_url request.
-// It is recommended to add parsers specifically to the routes that need them, rather than on root level with app.use().
-app.post('/api/shorturl', urlencodedParser, (req, res) => {
-  res.send(req.body.url + ' storing :)');
-});
-
-app.listen(port, () => log('Your app is listening on port ' + port));
+app.listen(port, () => log(`🚀 App listening on port ${port}`));
