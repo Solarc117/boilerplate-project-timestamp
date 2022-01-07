@@ -101,7 +101,6 @@ app.post('/api/shorturl', urlencodedParser, (req, res) => {
     log('❌ New url error: ' + err);
     return res.json({
       error: 'invalid url',
-      urlFormat: 'https://www.example.com OR https://example.org',
     });
   }
   log('Submitted url verified 😎: ' + submittedUrl);
