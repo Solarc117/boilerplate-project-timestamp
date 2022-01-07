@@ -31,7 +31,7 @@ const express = require('express'),
 // 📄 mongoose.connect(uri, { useNewUrlParser: true }) is the MINIMUM required to connect, but to work with future versions of mongoose (where Server Discovery and Monitoring engine are deprecated), we also pass the useUnifiedTopology key with a true value.
 mongoose
   .connect(process.env.MONGO_URI, {
-    // ⚠️ ADD YOUR URI TO A ROOT .ENV FILE
+    // ⚠️ ADD YOUR URI
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
