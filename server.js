@@ -26,7 +26,8 @@ const express = require('express'),
   UrlPair = mongoose.model('UrlPair', UrlPairSchema),
   bodyParser = require('body-parser'),
   urlencodedParser = bodyParser.urlencoded({ extended: false }),
-  port = process.env.PORT || 3000;
+  port = process.env.PORT || 3000,
+  dns = require('dns');
 
 // 📄 mongoose.connect(uri, { useNewUrlParser: true }) is the MINIMUM required to connect, but to work with future versions of mongoose (where Server Discovery and Monitoring engine are deprecated), we also pass the useUnifiedTopology key with a true value.
 mongoose
@@ -94,16 +95,22 @@ app.get('/api/whoami', (req, res) => {
 app.post('/api/shorturl', urlencodedParser, (req, res) => {
   // Checking if url is valid w/new URL().
   log('POST request processing...');
-  let submittedUrl;
+  let submittedUrl = req.body.url,
+    ip;
   try {
-    submittedUrl = new URL(req.body.url).href;
+    const UrlObj = new URL(submittedUrl);
+    ip = dns.lookup(UrlObj.host, (err, ip) => {
+      if (err && err.code === 'ENOTFOUND') throw err;
+      return ip;
+    });
+    submittedUrl = UrlObj.href;
   } catch (err) {
     log('❌ New url error: ' + err);
     return res.json({
       error: 'invalid url',
     });
   }
-  log('Submitted url verified 😎: ' + submittedUrl);
+  log('Submitted url verified 😎: ' + submittedUrl + ' ' + ip);
   // Checking if that url already exists in db.
   UrlPair.findOne({ original_url: submittedUrl }, (err, urlDoc) => {
     if (err) {
@@ -134,6 +141,7 @@ app.post('/api/shorturl', urlencodedParser, (req, res) => {
           log('❌ Error saving new UrlPair to docs: ' + err);
           return res.send('Could not add url to db 😩 ');
         }
+        log('✅ Documented new url!');
         res.json({
           message: '✅ Documented new url!',
           original_url: urlpair.original_url,
