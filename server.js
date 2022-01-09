@@ -265,7 +265,7 @@ app.post('/api/users/:_id/exercises', urlencodedParser, (req, res) => {
   });
 });
 
-// 4. Exercise tracker. ✨✨✨
+// 4. Exercise tracker.
 app.get('/api/users', (req, res) => {
   User.find({}, (err, allUsers) => {
     if (err) {
@@ -276,6 +276,27 @@ app.get('/api/users', (req, res) => {
     // Otherwise, db could be empty.
     log('❌ Something went wrong fetching all users...');
     res.send('Something went wrong 😣');
+  });
+});
+
+// 4. Exercise-tracker get all user's logs.
+app.get('/api/users/:_id/logs', (req, res) => {
+  const { _id } = req.params;
+  User.findById(_id, (err, user) => {
+    if (err) {
+      log('❌ Could not find user by id: ' + err);
+      return res.send('❌ Could not find a user with that id');
+    }
+    if (user) {
+      const { username, _id, logs } = user;
+      return res.json({
+        username: username,
+        _id: _id,
+        count: logs.length,
+        log: logs,
+      });
+    }
+    return res.send('❌ Something went wrong');
   });
 });
 
