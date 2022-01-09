@@ -18,36 +18,62 @@
   <body>
     <div class="container">
       <h1>Exercise tracker</h1>
+      <hr />
       <form action="/api/users" method="post">
         <h3>Create a New User</h3>
         <p><code>POST /api/users</code></p>
-        <input class="exercise-tracker" id="uname" type="text" name="username" placeholder="username" />
+        <p>Username <strong>*</strong></p>
+        <input
+          class="exercise-tracker"
+          id="uname"
+          type="text"
+          name="username"
+          placeholder="bamf123"
+          required
+        />
         <input class="exercise-tracker" type="submit" value="Submit" />
       </form>
       <form id="exercise-form" method="post">
-        <h3>Add exercises</h3>
+        <h3>Add Exercises</h3>
         <p><code>POST /api/users/:_id/exercises</code></p>
-        <input class="exercise-tracker" id="uid" type="text" name=":_id" placeholder=":_id" />
-        <input class="exercise-tracker"
+        <p>User Id <strong>*</strong></p>
+        <input
+          class="exercise-tracker"
+          id="uid"
+          type="text"
+          name=":_id"
+          placeholder="31da6bcaa90c82zd67b1311f"
+          required
+        />
+        <p>Description <strong>*</strong></p>
+        <input
+          class="exercise-tracker"
           id="desc"
           type="text"
           name="description"
-          placeholder="description*"
+          placeholder="Ran up and down stairs"
+          required
         />
-        <input class="exercise-tracker"
+        <p>Duration <strong>*</strong></p>
+        <input
+          class="exercise-tracker"
           id="dur"
           type="text"
           name="duration"
-          placeholder="duration* (mins.)"
+          placeholder="20"
+          required
         />
-        <input class="exercise-tracker"
+        <p>Date</p>
+        <input
+          class="exercise-tracker"
           id="date"
           type="text"
           name="date"
-          placeholder="date (yyyy-mm-dd)"
+          placeholder="2002-04-28"
         />
         <input class="exercise-tracker" type="submit" value="Submit" />
       </form>
+      <p><strong>*</strong> indicates <strong>required</strong> fields.</p>
       <p>
         <strong>GET user's exercise log: </strong>
         <code>GET /api/users/:_id/logs?[from][&amp;to][&amp;limit]</code>
