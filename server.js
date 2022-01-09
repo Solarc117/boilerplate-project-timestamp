@@ -3,6 +3,19 @@
 function log() {
   console.log(...arguments);
 }
+function checkFormat(date) {
+  if (typeof date !== 'string') return false;
+  const [year, month, day] = date.split('-').map(num => +num);
+  return year > 0 &&
+    year < 9999 &&
+    month > 0 &&
+    month <= 12 &&
+    day > 0 &&
+    day <= 31 &&
+    date.length === 10
+    ? [year, month - 1, day]
+    : false;
+}
 // Load environment variables into process.env.
 require('dotenv').config();
 
@@ -24,6 +37,14 @@ const express = require('express'),
     },
   }),
   UrlPair = mongoose.model('UrlPair', UrlPairSchema),
+  UserSchema = new Schema({
+    username: {
+      type: String,
+      required: true,
+    },
+    logs: [Object],
+  }),
+  User = mongoose.model('User', UserSchema),
   bodyParser = require('body-parser'),
   urlencodedParser = bodyParser.urlencoded({ extended: false }),
   port = process.env.PORT || 3000,
@@ -52,6 +73,9 @@ app.use((req, res, next) => {
   log(`📄 ${method} ${path} - ${ip}`);
   next();
 });
+
+// For indenting json responses.
+app.set('json spaces', 2);
 
 // File responses.
 // http://expressjs.com/en/starter/basic-routing.html
@@ -94,7 +118,6 @@ app.get('/api/whoami', (req, res) => {
 // It is recommended to add parsers specifically to the routes that need them, rather than on root level with app.use().
 app.post('/api/shorturl', urlencodedParser, (req, res) => {
   // Checking if url is valid w/new URL().
-  log('POST request processing...');
   let submittedUrl = req.body.url,
     ip;
   try {
@@ -110,7 +133,6 @@ app.post('/api/shorturl', urlencodedParser, (req, res) => {
       error: 'invalid url',
     });
   }
-  log('Submitted url verified 😎: ' + submittedUrl + ' ' + ip);
   // Checking if that url already exists in db.
   UrlPair.findOne({ original_url: submittedUrl }, (err, urlDoc) => {
     if (err) {
@@ -126,7 +148,6 @@ app.post('/api/shorturl', urlencodedParser, (req, res) => {
       });
     }
     // If it doesn't exist, create a new doc and save it.
-    log('🧐 Could not find urlDoc in db - creating new doc...');
     UrlPair.estimatedDocumentCount((err, count) => {
       if (err) {
         log('❌ Error counting UrlPair docs: ' + err);
@@ -149,6 +170,112 @@ app.post('/api/shorturl', urlencodedParser, (req, res) => {
         });
       });
     });
+  });
+});
+
+// 4. Exercise tracker.
+app.post('/api/users', urlencodedParser, (req, res) => {
+  // I am creating the user, then immediately responding w/the username and id of the new user.
+  // But first, I need to check that username is not already taken (user will be null if username is free).
+  // I believe user will be null if no user is found, in which case I should CREATE the new user.
+  const { username } = req.body;
+  User.findOne({ username: username }, (err, user) => {
+    if (err) {
+      log('❌ Error querying db for username: ' + err);
+      return res.send('❌ Could not query db for username 😣');
+    }
+    if (user)
+      return res.json({
+        message: 'Someone already has that username 😥',
+        username: user.username,
+        _id: user._id,
+      });
+    const newUser = new User({
+      username: username,
+    });
+    newUser.save((err, user) => {
+      if (err) {
+        log('❌ Error saving new user: ' + err);
+        return res.send('❌ Could not create a new user 😣');
+      }
+      const { username, _id } = user;
+      res.json({
+        message: `Welcome, ${username}! Created new user 🎉🥳`,
+        username: username,
+        _id: _id,
+      });
+    });
+  });
+});
+
+// 4. Exercise tracker.
+app.post('/api/users/:_id/exercises', urlencodedParser, (req, res) => {
+  const { _id } = req.params;
+  User.findById(_id, (err, user) => {
+    if (err) {
+      log('❌ Error querying db for user: ' + err);
+      return res.send(
+        '❌ Could not find a user corresponding to that _id, please try again'
+      );
+    }
+    if (user) {
+      const { description, duration, date } = req.body,
+        test = checkFormat(date);
+      if (!test && date !== '') {
+        log('❌ Invalid date format: ' + date);
+        return res.send(
+          '❌ Invalid date format: ' +
+            date +
+            ' - please enter in yyyy-mm-dd format.'
+        );
+      } else if (!+duration) {
+        log('❌ Invalid duration format: ' + duration);
+        return res.send(
+          '❌ Invalid duration format: ' +
+            duration +
+            ' - please enter only integers.'
+        );
+      }
+      user.logs.push({
+        description: description,
+        duration: +duration,
+        date: date
+          ? new Date(...test).toDateString()
+          : new Date().toDateString(),
+      });
+      return user.save((err, user) => {
+        if (err) {
+          log('❌ Error saving exercise log: ' + err);
+          return res.send('❌ Something went wrong');
+        }
+        if (user) {
+          const { username } = user,
+            { description, duration, date } = user.logs[user.logs.length - 1];
+          return res.json({
+            message: `Exercise logged to ${username}'s logs! 🥵👏`,
+            description: description,
+            duration: duration,
+            date: date,
+          });
+        }
+        return res.send('❌ Something went wrong');
+      });
+    }
+    res.send('❌ Something went wrong');
+  });
+});
+
+// 4. Exercise tracker. ✨✨✨
+app.get('/api/users', (req, res) => {
+  User.find({}, (err, allUsers) => {
+    if (err) {
+      log('❌ Error fetching users: ' + err);
+      return res.send('❌ Could not fetch users 😣');
+    }
+    if (allUsers) return res.send(allUsers);
+    // Otherwise, db could be empty.
+    log('❌ Something went wrong fetching all users...');
+    res.send('Something went wrong 😣');
   });
 });
 
@@ -180,4 +307,4 @@ app.get('/api/:date', (req, res) => {
   );
 });
 
-app.listen(port, () => log(`🚀 App listening on port ${port}`));
+app.listen(port, () => log(`🚀 Listening on port ${port}`));
