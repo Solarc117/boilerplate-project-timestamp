@@ -228,7 +228,8 @@ app.post('/api/users/:_id/exercises', urlencodedParser, (req, res) => {
             date +
             ' - please enter in yyyy-mm-dd format.'
         );
-      } else if (!+duration) {
+      }
+      if (!+duration) {
         log('❌ Invalid duration format: ' + duration);
         return res.send(
           '❌ Invalid duration format: ' +
@@ -239,9 +240,8 @@ app.post('/api/users/:_id/exercises', urlencodedParser, (req, res) => {
       user.logs.push({
         description: description,
         duration: +duration,
-        date: date
-          ? new Date(...test).toDateString()
-          : new Date().toDateString(),
+        // Date might still me '', meaning use the current date.
+        date: date ? new Date(...test) : new Date(),
       });
       return user.save((err, user) => {
         if (err) {
@@ -252,10 +252,10 @@ app.post('/api/users/:_id/exercises', urlencodedParser, (req, res) => {
           const { username } = user,
             { description, duration, date } = user.logs[user.logs.length - 1];
           return res.json({
-            message: `Exercise logged to ${username}'s logs! 🥵👏`,
+            message: `Exercise logged to ${username}'s logs! 👏`,
             description: description,
             duration: duration,
-            date: date,
+            date: date.toDateString(),
           });
         }
         return res.send('❌ Something went wrong');
@@ -265,7 +265,7 @@ app.post('/api/users/:_id/exercises', urlencodedParser, (req, res) => {
   });
 });
 
-// 4. Exercise tracker.
+// 4. Exercise tracker - get all users.
 app.get('/api/users', (req, res) => {
   User.find({}, (err, allUsers) => {
     if (err) {
@@ -281,15 +281,43 @@ app.get('/api/users', (req, res) => {
 
 // 4. Exercise-tracker get all user's logs.
 app.get('/api/users/:_id/logs', (req, res) => {
-  const { _id } = req.params;
+  const { from, to, limit } = req.query,
+    { _id } = req.params;
   User.findById(_id, (err, user) => {
     if (err) {
       log('❌ Could not find user by id: ' + err);
       return res.send('❌ Could not find a user with that id');
     }
     if (user) {
-      const { username, _id, logs } = user;
+      const { username, _id } = user;
+      // Now I checking if there were any queries; if there are, the first time I add them from the user's logs, and thereafter filter from the filteredLogs.
+      // If the query was of a valid format, all of these checks should be truthy values.
+      let { logs } = user,
+        fromUnix = checkFormat(from),
+        toUnix = checkFormat(to),
+        limitCheck = +limit,
+        message = '';
+
+      if (from) {
+        if (fromUnix) {
+          fromUnix = new Date(...fromUnix).valueOf();
+          logs = logs.filter(log => log.date.valueOf() >= fromUnix);
+        } else message += '⚠️  Invalid from format, please enter yyyy-mm-dd\n';
+      }
+      if (to) {
+        if (toUnix) {
+          toUnix = new Date(...toUnix).valueOf();
+          logs = logs.filter(log => log.date.valueOf() <= toUnix);
+        } else message += '⚠️  Invalid to format - please enter yyyy-mm-dd';
+      }
+      if (limitCheck) {
+        while (logs.length > limitCheck) logs.shift();
+      } else if (limit)
+        message += '⚠️  Invalid limit format - please enter digits only';
+      // Only fetch exercise logs from the specified date.
+      logs.forEach(log => (log.date = log.date.toDateString()));
       return res.json({
+        message: message || 'Success!',
         username: username,
         _id: _id,
         count: logs.length,
