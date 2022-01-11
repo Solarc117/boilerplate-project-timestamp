@@ -249,10 +249,13 @@ app.post('/api/users/:_id/exercises', urlencodedParser, (req, res) => {
           return res.send('❌ Something went wrong');
         }
         if (user) {
-          const { username } = user,
+          const { username, _id, logs } = user,
             { description, duration, date } = user.logs[user.logs.length - 1];
           return res.json({
             message: `Exercise logged to ${username}'s logs! 👏`,
+            username: username,
+            logs: logs,
+            _id: _id,
             description: description,
             duration: duration,
             date: date.toDateString(),
@@ -321,7 +324,7 @@ app.get('/api/users/:_id/logs', (req, res) => {
         username: username,
         _id: _id,
         count: logs.length,
-        log: logs,
+        logs: logs,
       });
     }
     return res.send('❌ Something went wrong');
