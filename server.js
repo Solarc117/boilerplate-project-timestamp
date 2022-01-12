@@ -274,9 +274,7 @@ app.get('/api/users', (req, res) => {
       return res.send('❌ Could not fetch users 😣');
     }
     if (allUsers) return res.send(allUsers);
-    // Otherwise, db could be empty.
-    log('❌ Something went wrong fetching all users...');
-    res.send('Something went wrong 😣');
+    res.send([]);
   });
 });
 
@@ -284,16 +282,16 @@ app.get('/api/users', (req, res) => {
 app.get('/api/users/:_id/logs', (req, res) => {
   const { from, to, limit } = req.query,
     { _id } = req.params;
+
   User.findById(_id, (err, user) => {
     if (err) {
-      log('❌ Could not find user by id: ' + err);
+      log('Error querying user by id: ' + err);
       return res.send('❌ Could not find a user with that id');
     }
     if (user) {
-      const { username, _id } = user;
       // Now I checking if there were any queries; if there are, the first time I add them from the user's logs, and thereafter filter from the filteredLogs.
-      // If the query was of a valid format, all of these checks should be truthy values.
       let { logs } = user,
+        // If the query was of a valid format, all of these checks should be truthy values.
         fromUnix = checkFormat(from),
         toUnix = checkFormat(to),
         limitCheck = +limit,
@@ -315,25 +313,12 @@ app.get('/api/users/:_id/logs', (req, res) => {
         while (logs.length > limitCheck) logs.shift();
       } else if (limit)
         message += '⚠️  Invalid limit format - please enter digits only';
-      // Only fetch exercise logs from the specified date.
+
       logs.forEach(log => (log.date = log.date.toDateString()));
-      // return res.json({
-      //   message: message || 'Success!',
-      //   username: username,
-      //   _id: _id,
-      //   count: logs.length,
-      //   logs: logs,
-      // });
-      // user.count = logs.length;
-      return res.json({
-        message: message,
-        username: username,
-        _id: _id,
-        count: logs.length,
-        log: logs,
-      });
+      user.count = logs.length;
+      return res.json(user);
     }
-    return res.send('❌ Something went wrong');
+    res.send('❌ No user by that id');
   });
 });
 
