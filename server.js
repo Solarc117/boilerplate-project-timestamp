@@ -45,7 +45,7 @@ const express = require('express'),
     log: [Object],
     // For clients; not stored in db.
     count: Number,
-    message: String,
+    // message: String,
   }),
   User = mongoose.model('User', UserSchema),
   bodyParser = require('body-parser'),
@@ -297,31 +297,34 @@ app.get('/api/users/:_id/logs', (req, res) => {
         // If the query was of a valid format, all of these checks should be truthy values.
         fromUnix = checkFormat(from),
         toUnix = checkFormat(to),
-        limitCheck = +limit,
-        message = '';
+        limitCheck = +limit;
+      // message = '';
 
       if (from) {
         if (fromUnix) {
           fromUnix = new Date(...fromUnix).valueOf();
           exercises = exercises.filter(log => log.date.valueOf() >= fromUnix);
-        } else message += '⚠️  Invalid from format, please enter yyyy-mm-dd\n';
+        }
+        // else message += '⚠️ Invalid from format, please enter yyyy-mm-dd\n';
       }
       if (to) {
         if (toUnix) {
           toUnix = new Date(...toUnix).valueOf();
           exercises = exercises.filter(log => log.date.valueOf() <= toUnix);
-        } else message += '⚠️  Invalid to format - please enter yyyy-mm-dd';
+        }
+        // else message += '⚠️ Invalid to format - please enter yyyy-mm-dd';
       }
       if (limitCheck) {
         while (exercises.length > limitCheck) exercises.shift();
-      } else if (limit)
-        message += '⚠️  Invalid limit format - please enter digits only';
+      }
+      // else if (limit)
+      //   message += '⚠️ Invalid limit format - please enter digits only';
 
       exercises.forEach(
         exercise => (exercise.date = exercise.date.toDateString())
       );
       user.count = exercises.length;
-      user.message = message || 'Success';
+      // user.message = message || 'Success';
 
       return res.json(user);
     }
