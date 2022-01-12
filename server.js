@@ -42,7 +42,10 @@ const express = require('express'),
       type: String,
       required: true,
     },
-    logs: [Object],
+    log: [Object],
+    // For clients; not stored in db.
+    count: Number,
+    message: String,
   }),
   User = mongoose.model('User', UserSchema),
   bodyParser = require('body-parser'),
@@ -237,7 +240,7 @@ app.post('/api/users/:_id/exercises', urlencodedParser, (req, res) => {
             ' - please enter only integers.'
         );
       }
-      user.logs.push({
+      user.log.push({
         description: description,
         duration: +duration,
         // Date might still me '', meaning use the current date.
@@ -250,7 +253,7 @@ app.post('/api/users/:_id/exercises', urlencodedParser, (req, res) => {
         }
         if (user) {
           const { username, _id } = user,
-            { description, duration, date } = user.logs[user.logs.length - 1];
+            { description, duration, date } = user.log[user.log.length - 1];
           return res.json({
             username: username,
             _id: _id,
@@ -278,7 +281,7 @@ app.get('/api/users', (req, res) => {
   });
 });
 
-// 4. Exercise-tracker get all user's logs.
+// 4. Exercise-tracker get all user's exercises.
 app.get('/api/users/:_id/logs', (req, res) => {
   const { from, to, limit } = req.query,
     { _id } = req.params;
@@ -289,8 +292,8 @@ app.get('/api/users/:_id/logs', (req, res) => {
       return res.send('❌ Could not find a user with that id');
     }
     if (user) {
-      // Now I checking if there were any queries; if there are, the first time I add them from the user's logs, and thereafter filter from the filteredLogs.
-      let { logs } = user,
+      // Now I checking if there were any queries; if there are, the first time I add them from the user's log, and thereafter filter from the filteredLog.
+      let { log: exercises } = user,
         // If the query was of a valid format, all of these checks should be truthy values.
         fromUnix = checkFormat(from),
         toUnix = checkFormat(to),
@@ -300,22 +303,26 @@ app.get('/api/users/:_id/logs', (req, res) => {
       if (from) {
         if (fromUnix) {
           fromUnix = new Date(...fromUnix).valueOf();
-          logs = logs.filter(log => log.date.valueOf() >= fromUnix);
+          exercises = exercises.filter(log => log.date.valueOf() >= fromUnix);
         } else message += '⚠️  Invalid from format, please enter yyyy-mm-dd\n';
       }
       if (to) {
         if (toUnix) {
           toUnix = new Date(...toUnix).valueOf();
-          logs = logs.filter(log => log.date.valueOf() <= toUnix);
+          exercises = exercises.filter(log => log.date.valueOf() <= toUnix);
         } else message += '⚠️  Invalid to format - please enter yyyy-mm-dd';
       }
       if (limitCheck) {
-        while (logs.length > limitCheck) logs.shift();
+        while (exercises.length > limitCheck) exercises.shift();
       } else if (limit)
         message += '⚠️  Invalid limit format - please enter digits only';
 
-      logs.forEach(log => (log.date = log.date.toDateString()));
-      user.count = logs.length;
+      exercises.forEach(
+        exercise => (exercise.date = exercise.date.toDateString())
+      );
+      user.count = exercises.length;
+      user.message = message || 'Success';
+
       return res.json(user);
     }
     res.send('❌ No user by that id');
