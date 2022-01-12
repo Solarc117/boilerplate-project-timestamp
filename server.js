@@ -208,7 +208,7 @@ app.post('/api/users', urlencodedParser, (req, res) => {
   });
 });
 
-// 4. Exercise tracker.
+// 4. Exercise tracker - post a new exercise.
 app.post('/api/users/:_id/exercises', urlencodedParser, (req, res) => {
   const { _id } = req.params;
   User.findById(_id, (err, user) => {
@@ -249,16 +249,14 @@ app.post('/api/users/:_id/exercises', urlencodedParser, (req, res) => {
           return res.send('❌ Something went wrong');
         }
         if (user) {
-          const { username, _id, logs } = user,
+          const { username, _id } = user,
             { description, duration, date } = user.logs[user.logs.length - 1];
           return res.json({
-            message: `Exercise logged to ${username}'s logs! 👏`,
             username: username,
-            logs: logs,
             _id: _id,
-            description: description,
-            duration: duration,
             date: date.toDateString(),
+            duration: duration,
+            description: description,
           });
         }
         return res.send('❌ Something went wrong');
@@ -319,12 +317,20 @@ app.get('/api/users/:_id/logs', (req, res) => {
         message += '⚠️  Invalid limit format - please enter digits only';
       // Only fetch exercise logs from the specified date.
       logs.forEach(log => (log.date = log.date.toDateString()));
+      // return res.json({
+      //   message: message || 'Success!',
+      //   username: username,
+      //   _id: _id,
+      //   count: logs.length,
+      //   logs: logs,
+      // });
+      // user.count = logs.length;
       return res.json({
-        message: message || 'Success!',
+        message: message,
         username: username,
         _id: _id,
         count: logs.length,
-        logs: logs,
+        log: logs,
       });
     }
     return res.send('❌ Something went wrong');
