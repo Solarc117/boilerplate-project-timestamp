@@ -50,9 +50,10 @@ const express = require('express'),
   User = mongoose.model('User', UserSchema),
   bodyParser = require('body-parser'),
   urlencodedParser = bodyParser.urlencoded({ extended: false }),
-  port = process.env.PORT || 3000,
-  dns = require('dns');
-
+  dns = require('dns'),
+  multer = require('multer'),
+  upload = multer({ dest: 'uploads/' }),
+  port = process.env.PORT || 3000;
 // 📄 mongoose.connect(uri, { useNewUrlParser: true }) is the MINIMUM required to connect, but to work with future versions of mongoose (where Server Discovery and Monitoring engine are deprecated), we also pass the useUnifiedTopology key with a true value.
 mongoose
   .connect(process.env.MONGO_URI, {
@@ -109,13 +110,13 @@ app.get('/api', (req, res) => {
 });
 
 // 2. Request Header Parser.
-app.get('/api/whoami', (req, res) => {
+app.get('/api/whoami', (req, res) =>
   res.json({
     ipaddress: req.socket.remoteAddress,
     language: req.headers['accept-language'],
     software: req.headers['user-agent'],
-  });
-});
+  })
+);
 
 // 3. URL Shortener - submit new short_url request.
 // It is recommended to add parsers specifically to the routes that need them, rather than on root level with app.use().
@@ -267,6 +268,12 @@ app.post('/api/users/:_id/exercises', urlencodedParser, (req, res) => {
     }
     res.send('❌ Something went wrong');
   });
+});
+
+// 5. File metadata - post a new file for analysis.
+app.post('/api/fileanalyse', upload.single('upfile'), (req, res) => {
+  const { originalname, mimetype, size } = req.file;
+  res.json({ name: originalname, type: mimetype, size: size });
 });
 
 // 4. Exercise tracker - get all users.
